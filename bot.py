@@ -1,17 +1,19 @@
 import os
 import time
 from telebot import TeleBot, types
-from models import (Session, create_tables, engine, get_or_create_user,
-                    add_category, Category)
+from models import (Session, engine, Category)
 from config import *
-from keyboards import*
+from keyboards import *
+from working_db import * 
 
 
 # Инициализация бота
 bot = TeleBot(TOKEN)
 
+# настройка БД: 1-создание таблиц
+                # 2-заполенеие БД
 # with Session() as session:
-#     # create_tables(engine)
+#     create_tables(engine)
 #     add_category(session)
     
 @bot.message_handler(commands=['start'])
