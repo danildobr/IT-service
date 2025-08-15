@@ -11,18 +11,18 @@ def create_tables(engine):
 
 
 def add_category(session, json_file='data_category.json'):
-    """Загружает категории и подкатегории из JSON файла"""
+    """Загружает категории и подкатегории из JSON файла с обновлением рекомендаций"""
     try:
-        #  Получаем абсолютный путь к файлу
+        # Получаем абсолютный путь к файлу
         current_dir = os.path.dirname(os.path.abspath(__file__))
         json_path = os.path.join(current_dir, json_file)
         
-        print(f"Пытаемся загрузить файл: {json_path}")  # Отладочная информация
-        
+        print(f"Пытаемся загрузить файл: {json_path}")
+
         if not os.path.exists(json_path):
             print(f"❌ Файл не найден: {json_path}")
             print("Содержимое директории:")
-            print(os.listdir(current_dir))  # Покажем что есть в папке
+            print(os.listdir(current_dir))
             return
         
         with open(json_path, 'r', encoding='utf-8') as f:
@@ -30,18 +30,20 @@ def add_category(session, json_file='data_category.json'):
         
         added_categories = 0
         added_subcategories = 0
-        
+        updated_recommendations = 0
+
         for category_data in data['categories']:
-            # Проверяем существование основной категории
+            # Проверяем/создаем категорию
             category = session.query(Category).filter_by(name=category_data['name']).first()
             
             if not category:
                 category = Category(name=category_data['name'])
                 session.add(category)
-                session.flush()  # Получаем ID для новой категории
+                session.flush()
                 added_categories += 1
+                print(f"Добавлена новая категория: {category.name}")
             
-            # Добавляем подкатегории
+            # Обрабатываем подкатегории
             for subcat_data in category_data['subcategories']:
                 subcategory = session.query(Subcategory).filter_by(
                     category_id=category.id,
@@ -49,20 +51,37 @@ def add_category(session, json_file='data_category.json'):
                 ).first()
                 
                 if not subcategory:
+                    # Создаем новую подкатегорию
                     subcategory = Subcategory(
                         category_id=category.id,
                         name=subcat_data['name'],
-                        recommendation=subcat_data['recommendation']
+                        recommendation=subcat_data['solution']
                     )
                     session.add(subcategory)
                     added_subcategories += 1
+                    print(f"Добавлена подкатегория: {category.name} → {subcategory.name}")
+                else:
+                    # Проверяем, изменилась ли рекомендация
+                    if subcategory.recommendation != subcat_data['solution']:
+                        old_rec = subcategory.recommendation
+                        subcategory.recommendation = subcat_data['solution']
+                        updated_recommendations += 1
+                        print(f"Обновлена рекомендация для: {subcategory.name}\n"
+                              f"Было: {old_rec}\n"
+                              f"Стало: {subcategory.recommendation}")
         
         session.commit()
-        print(f"Добавлено: {added_categories} категорий, {added_subcategories} подкатегорий")
-        
+        print(f"\nИтог:\n"
+              f"Добавлено категорий: {added_categories}\n"
+              f"Добавлено подкатегорий: {added_subcategories}\n"
+              f"Обновлено рекомендаций: {updated_recommendations}")
+
+    except json.JSONDecodeError as e:
+        print(f"❌ Ошибка парсинга JSON: {str(e)}")
     except Exception as e:
         session.rollback()
-        print(f"Ошибка при загрузке категорий: {e}")        
+        print(f"❌ Ошибка при загрузке категорий: {str(e)}")
+        raise     
         
 
 def check_user(session, message):
@@ -138,3 +157,53 @@ def setup_it_specialists():
                 print(f"⚠️ Ошибка обработки ID {telegram_id}: {e}")
         
         print(f"✅ Готово! Добавлено: {added_count}, Обновлено: {updated_count} IT-специалистов")
+        
+
+def setup_admins():
+    """Загружает администраторов из .env в базу данных"""
+    
+    # Получаем список ID администраторов из .env
+    admins_str = os.getenv('ADMIN_ID', '')
+    if not admins_str:
+        print("⚠️ В .env не найдена переменная ADMIN_ID")
+        return
+    
+    # Парсим ID администраторов
+    admin_ids = [int(id_str.strip()) for id_str in admins_str.split(',') if id_str.strip().isdigit()]
+    
+    if not admin_ids:
+        print("⚠️ Не найдено валидных ID в ADMIN_ID")
+        return
+    
+    with Session() as session:
+        added_count = 0
+        updated_count = 0
+        
+        for telegram_id in admin_ids:
+            try:
+                user = session.query(User).filter_by(telegram_id=telegram_id).first()
+                
+                if user:
+                    if not user.is_admin:
+                        user.is_admin = True
+                        updated_count += 1
+                        print(f"🛠 Пользователь {user.username} назначен администратором")
+                else:
+                    # Создаем нового пользователя-администратора
+                    user = User(
+                        telegram_id=telegram_id,
+                        username=f"admin_{telegram_id}",  # Временное имя
+                        is_admin=True,
+                        is_it_specialist=True  # Админ автоматически получает права IT-спеца
+                    )
+                    session.add(user)
+                    added_count += 1
+                    print(f"👑 Создан новый администратор с ID {telegram_id}")
+                
+                session.commit()
+                
+            except Exception as e:
+                session.rollback()
+                print(f"⚠️ Ошибка обработки ID {telegram_id}: {e}")
+        
+        print(f"✅ Готово! Добавлено: {added_count}, Обновлено: {updated_count} администраторов")
