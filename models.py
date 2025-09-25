@@ -1,8 +1,8 @@
 import json
 import os
 from datetime import datetime 
-from sqlalchemy import (Boolean, DateTime, Text, create_engine, exists,
-                        Column, Integer, String, ForeignKey)
+from sqlalchemy import (BigInteger, Boolean, DateTime, Text, create_engine, exists,
+                        Column, Integer, String, ForeignKey, LargeBinary)
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from config import *
 
@@ -13,7 +13,7 @@ class User(Base):
     __tablename__ = 'users'
     
     id = Column(Integer, primary_key=True)
-    telegram_id = Column(Integer, unique=True, nullable=False)
+    telegram_id = Column(BigInteger, unique=True, nullable=False)
     username = Column(String(100), nullable=False)
     is_admin = Column(Boolean, default=False)
     is_it_specialist = Column(Boolean, default=False)
@@ -52,15 +52,15 @@ class Ticket(Base):
     # свзяь с подкатегориями 
     description = Column(Text)
     # текстовое описание проблемы
-    status = Column(String(20), default='Открыт', nullable=False)
-    # статусы: "Открыт", "В работе", "Закрыт"
+    status = Column(String(20), default='В работе', nullable=False)
+    # статус заявки
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     # время создание заявки 
-    taken_at = Column(DateTime)
+    taken_at = Column(DateTime, default=datetime.now)
     # время взятие в работу
     closed_at = Column(DateTime)
     # время закрытие заяки
-    file_path = Column(String(255))
+    screenshot = Column(LargeBinary)
     # путь к прикреплённому файлу (скриншоты, PDF и др.)
     helped = Column(Boolean)
     # помогли ли рекомендации
