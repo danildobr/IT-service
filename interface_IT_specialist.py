@@ -81,7 +81,7 @@ def register_it_handlers(bot):
                     bot.send_document(
                         message.chat.id,
                         f,
-                        caption="📋 Все заявки (со скриншотами)",
+                        caption="📋 Все заявки",
                         visible_file_name="Все_заявки.xlsx"
                     )
 

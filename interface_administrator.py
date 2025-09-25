@@ -79,96 +79,6 @@ def register_admin_handlers(bot):
         os.unlink(filepath)
 
 
-    # def start_broadcast(message):
-    #     """Начать рассылку"""
-    #     msg = bot.reply_to(message, "📢 Введите сообщение для рассылки:")
-    #     bot.register_next_step_handler(msg, process_broadcast)
-
-    # def process_broadcast(message):
-    #     """Обработать рассылку"""
-    #     with Session() as session:
-    #         users = session.query(User).all()
-    #         success = 0
-    #         for user in users:
-    #             try:
-    #                 bot.send_message(user.telegram_id, f"📢 <b>Рассылка</b>:\n\n{message.text}", parse_mode='HTML')
-    #                 success += 1
-    #             except:
-    #                 continue
-            
-    #         bot.reply_to(message, f"✅ Рассылка завершена\nОтправлено: {success}/{len(users)}")
-    
-    # @bot.message_handler(commands=['delete_ticket'])
-    # def handle_delete_ticket(message):
-    #     """Обработчик удаления заявки с подтверждением"""
-    #     try:
-    #         args = message.text.split()
-    #         if len(args) < 2:
-    #             bot.reply_to(message, "❌ Формат: /delete_ticket <ID заявки>")
-    #             return
-
-    #         ticket_id = int(args[1])
-            
-    #         with Session() as session:
-
-    #             ticket = session.query(Ticket).filter_by(id=ticket_id).first()
-                
-    #             if not ticket:
-    #                 bot.reply_to(message, f"❌ Заявка #{ticket_id} не найдена")
-    #                 return
-
-    #             # Создаем клавиатуру подтверждения
-    #             markup = types.InlineKeyboardMarkup()
-    #             markup.add(
-    #                 types.InlineKeyboardButton("✅ Да, удалить", callback_data=f"confirm_del_{ticket_id}"),
-    #                 types.InlineKeyboardButton("❌ Отмена", callback_data="cancel_del")
-    #             )
-                
-    #             bot.send_message(
-    #                 message.chat.id,
-    #                 f"⚠️ Вы уверены, что хотите полностью удалить заявку #{ticket_id}?\n"
-    #                 f"Категория: {ticket.subcategory.category.name}\n"
-    #                 f"Пользователь: @{ticket.user.username}\n"
-    #                 f"Это действие нельзя отменить!",
-    #                 reply_markup=markup
-    #             )
-
-    #     except ValueError:
-    #         bot.reply_to(message, "❌ Некорректный ID заявки")
-    #     except Exception as e:
-    #         bot.reply_to(message, f"⚠️ Ошибка: {str(e)}")
-
-    # @bot.callback_query_handler(func=lambda call: call.data.startswith('confirm_del_'))
-    # def confirm_delete(call):
-    #     """Подтверждение удаления"""
-    #     ticket_id = int(call.data.split('_')[-1])
-        
-    #     with Session() as session:
-    #         try:
-    #             ticket = session.query(Ticket).filter_by(id=ticket_id).first()
-    #             if ticket:
-    #                 # Удаляем файлы, если они есть
-    #                 if ticket.file_path and os.path.exists(ticket.file_path):
-    #                     os.remove(ticket.file_path)
-                    
-    #                 session.delete(ticket)
-    #                 session.commit()
-                    
-    #                 bot.edit_message_text(
-    #                     f"✅ Заявка #{ticket_id} полностью удалена",
-    #                     call.message.chat.id,
-    #                     call.message.message_id
-    #                 )
-    #             else:
-    #                 bot.answer_callback_query(call.id, "Заявка уже удалена")
-
-    #         except Exception as e:
-    #             session.rollback()
-    #             bot.edit_message_text(
-    #                 f"❌ Ошибка удаления: {str(e)}",
-    #                 call.message.chat.id,
-    #                 call.message.message_id
-                # )
     @bot.message_handler(func=lambda msg: msg.text == "📋 Загрузить категории")
     @admin_required
     def handle_upload_categories(message):
@@ -189,8 +99,7 @@ def register_admin_handlers(bot):
             bot.reply_to(
                 message,
                 "❌ Неверное имя файла!\n"
-                "Файл должен называться точно: <b>категории.xlsx</b>",
-                parse_mode='HTML'
+                "Файл должен называться точно: категории.xlsx",
             )
             return
 
@@ -324,7 +233,7 @@ def register_admin_handlers(bot):
             if 'tmp_path' in locals() and os.path.exists(tmp_path):
                 os.unlink(tmp_path)                
 
-    @bot.message_handler(func=lambda msg: msg.text == "Скачать файл с категориями")
+    @bot.message_handler(func=lambda msg: msg.text == "📋 Скачать файл с категориями")
     @admin_required
     def download_categories_excel(message):
         """Генерирует и отправляет Excel-файл со всеми категориями и подкатегориями"""
@@ -408,17 +317,14 @@ def register_admin_handlers(bot):
             reply_markup=markup
         )
 
-
     # === ДОБАВЛЕНИЕ ===
-
     @bot.callback_query_handler(func=lambda call: call.data == "it_add")
     @admin_required
     def ask_add_it_specialist(call):
         bot.answer_callback_query(call.id)
         msg = bot.send_message(
             call.message.chat.id,
-            "Введите <b>Telegram ID</b> или <b>username</b> (без @) пользователя, который уже запускал бота:",
-            parse_mode='HTML'
+            "Введите Telegram ID или username (без @) пользователя, который уже запускал бота:",
         )
         bot.register_next_step_handler(msg, process_add_it_input)
 
@@ -502,8 +408,7 @@ def register_admin_handlers(bot):
         bot.answer_callback_query(call.id)
         msg = bot.send_message(
             call.message.chat.id,
-            "Введите <b>Telegram ID</b> или <b>username</b> (без @) IT-специалиста для удаления:",
-            parse_mode='HTML'
+            "Введите Telegram ID или username (без @) IT-специалиста для удаления:",
         )
         bot.register_next_step_handler(msg, process_remove_it_input)
 
@@ -578,6 +483,7 @@ def register_admin_handlers(bot):
     def cancel_it_action(call):
         bot.edit_message_text("❌ Отменено.", call.message.chat.id, call.message.message_id)
             
+                
     @bot.message_handler(func=lambda msg: msg.text == "📊 Статистика")
     @admin_required
     def show_stats_excel(message):
@@ -590,26 +496,38 @@ def register_admin_handlers(bot):
                     bot.reply_to(message, "📭 Нет заявок для анализа.")
                     return
 
-                # Статусы
+                # Статусы (актуальные)
                 status_counts = dict(session.query(Ticket.status, func.count(Ticket.id)).group_by(Ticket.status).all())
 
-                # По категориям
+                # По категориям — с select_from!
                 cat_data = session.query(
                     Category.name,
                     func.count(Ticket.id)
-                ).join(Subcategory).join(Ticket).group_by(Category.id).all()
+                ).select_from(Category)\
+                .join(Subcategory)\
+                .join(Ticket)\
+                .group_by(Category.id)\
+                .all()
 
-                # По подкатегориям (ТОП-20)
+                # По подкатегориям (ТОП-20) — с select_from!
                 subcat_data = session.query(
                     Subcategory.name,
                     func.count(Ticket.id)
-                ).join(Ticket).group_by(Subcategory.id).order_by(func.count(Ticket.id).desc()).limit(20).all()
+                ).select_from(Subcategory)\
+                .join(Ticket)\
+                .group_by(Subcategory.id)\
+                .order_by(func.count(Ticket.id).desc())\
+                .limit(20)\
+                .all()
 
                 # Динамика по месяцам
                 monthly_data = session.query(
-                    func.strftime('%Y-%m', Ticket.created_at).label('month'),
+                    func.to_char(Ticket.created_at, 'YYYY-MM').label('month'),
                     func.count(Ticket.id)
-                ).group_by('month').order_by('month').all()
+                ).select_from(Ticket)\
+                .group_by(func.to_char(Ticket.created_at, 'YYYY-MM'))\
+                .order_by(func.to_char(Ticket.created_at, 'YYYY-MM'))\
+                .all()
 
                 # Дата первой заявки
                 first_ticket = session.query(func.min(Ticket.created_at)).scalar()
@@ -626,10 +544,10 @@ def register_admin_handlers(bot):
             ws_summary["B3"] = total_tickets
             ws_summary["A4"] = "В работе:"
             ws_summary["B4"] = status_counts.get("В работе", 0)
-            ws_summary["A5"] = "Открыто:"
-            ws_summary["B5"] = status_counts.get("Открыт", 0)
-            ws_summary["A6"] = "Закрыто:"
-            ws_summary["B6"] = status_counts.get("Закрыт", 0)
+            ws_summary["A5"] = "Закрыта:"
+            ws_summary["B5"] = status_counts.get("Закрыта", 0)
+            ws_summary["A6"] = "Ждет уточнения:"
+            ws_summary["B6"] = status_counts.get("Ждет уточнения", 0)
             ws_summary["A7"] = "Период:"
             ws_summary["B7"] = f"{first_ticket.strftime('%d.%m.%Y')} — {datetime.now().strftime('%d.%m.%Y')}"
 
@@ -651,8 +569,8 @@ def register_admin_handlers(bot):
             from openpyxl.chart import PieChart, Reference
             if len(cat_data) > 0:
                 pie = PieChart()
-                labels = Reference(ws_cats, min_col=1, min_row=2, max_row=len(cat_data)+1)
-                data = Reference(ws_cats, min_col=2, min_row=1, max_row=len(cat_data)+1)
+                labels = Reference(ws_cats, min_col=1, min_row=2, max_row=len(cat_data) + 1)
+                data = Reference(ws_cats, min_col=2, min_row=1, max_row=len(cat_data) + 1)
                 pie.add_data(data, titles_from_data=True)
                 pie.set_categories(labels)
                 pie.title = "Заявки по категориям"
@@ -679,8 +597,8 @@ def register_admin_handlers(bot):
                 bar.y_axis.title = 'Количество'
                 bar.x_axis.title = 'Подкатегория'
 
-                data = Reference(ws_subcats, min_col=2, min_row=1, max_row=min(11, len(subcat_data)+1))
-                cats = Reference(ws_subcats, min_col=1, min_row=2, max_row=min(11, len(subcat_data)+1))
+                data = Reference(ws_subcats, min_col=2, min_row=1, max_row=min(11, len(subcat_data) + 1))
+                cats = Reference(ws_subcats, min_col=1, min_row=2, max_row=min(11, len(subcat_data) + 1))
                 bar.add_data(data, titles_from_data=True)
                 bar.set_categories(cats)
                 ws_subcats.add_chart(bar, "D2")
@@ -692,15 +610,16 @@ def register_admin_handlers(bot):
             for cell in ws_status[1]:
                 cell.font = Font(bold=True)
 
-            statuses = ["Открыт", "В работе", "Закрыт", "Ожидает уточнений"]
+            # Актуальные статусы
+            statuses = ["В работе", "Закрыта", "Ждет уточнения"]
             for i, status in enumerate(statuses, start=2):
                 ws_status[f"A{i}"] = status
                 ws_status[f"B{i}"] = status_counts.get(status, 0)
 
             # Круговая диаграмма статусов
             pie2 = PieChart()
-            labels2 = Reference(ws_status, min_col=1, min_row=2, max_row=5)
-            data2 = Reference(ws_status, min_col=2, min_row=1, max_row=5)
+            labels2 = Reference(ws_status, min_col=1, min_row=2, max_row=len(statuses) + 1)
+            data2 = Reference(ws_status, min_col=2, min_row=1, max_row=len(statuses) + 1)
             pie2.add_data(data2, titles_from_data=True)
             pie2.set_categories(labels2)
             pie2.title = "Распределение по статусам"
@@ -726,8 +645,8 @@ def register_admin_handlers(bot):
                 line.y_axis.title = "Количество"
                 line.x_axis.title = "Месяц"
 
-                data = Reference(ws_trend, min_col=2, min_row=1, max_row=len(monthly_data)+1)
-                cats = Reference(ws_trend, min_col=1, min_row=2, max_row=len(monthly_data)+1)
+                data = Reference(ws_trend, min_col=2, min_row=1, max_row=len(monthly_data) + 1)
+                cats = Reference(ws_trend, min_col=1, min_row=2, max_row=len(monthly_data) + 1)
                 line.add_data(data, titles_from_data=True)
                 line.set_categories(cats)
                 ws_trend.add_chart(line, "D2")
@@ -754,3 +673,156 @@ def register_admin_handlers(bot):
                     os.unlink(tmp_path)
                 except:
                     pass
+                
+                
+    @bot.message_handler(func=lambda msg: msg.text == "📢 Сделать массовую рассылку")
+    @admin_required
+    def start_broadcast(message):
+        """Начало рассылки: запрос контента"""
+        msg = bot.reply_to(
+            message,
+            "📤 Отправьте текст или файл с подписью для рассылки:",
+        )
+        bot.register_next_step_handler(msg, _process_broadcast_content)
+
+
+    def _process_broadcast_content(message):
+        """Сохраняет контент и запрашивает подтверждение"""
+        try:
+            broadcast_data = {
+                'text': None,
+                'file_id': None,
+                'file_type': None,  # 'document', 'photo'
+                'caption': None
+            }
+
+            if message.content_type == 'text':
+                broadcast_data['text'] = message.text
+            elif message.content_type == 'document':
+                broadcast_data['file_id'] = message.document.file_id
+                broadcast_data['file_type'] = 'document'
+                broadcast_data['caption'] = message.caption or "📢 Рассылка"
+            elif message.content_type == 'photo':
+                broadcast_data['file_id'] = message.photo[-1].file_id
+                broadcast_data['file_type'] = 'photo'
+                broadcast_data['caption'] = message.caption or "📢 Рассылка"
+            else:
+                bot.reply_to(message, "❌ Поддерживаются только текст, документы и фото.")
+                return
+
+            # Проверка размера файла (если есть)
+            if broadcast_data['file_id']:
+                file_size = 0
+                if message.document:
+                    file_size = message.document.file_size
+                elif message.photo:
+                    file_size = message.photo[-1].file_size
+                if file_size > 20 * 1024 * 1024:
+                    bot.reply_to(message, "⚠️ Файл слишком большой (макс. 20 МБ)")
+                    return
+
+            # Предпросмотр
+            if broadcast_data['text']:
+                preview = f"📝 Текст рассылки:\n\n{broadcast_data['text'][:100]}..."
+            else:
+                file_type = "Файл" if broadcast_data['file_type'] == 'document' else "Фото"
+                preview = f"📎 {file_type}: {broadcast_data['caption']}"
+
+            markup = types.InlineKeyboardMarkup()
+            markup.row(
+                types.InlineKeyboardButton("✅ Отправить всем", callback_data="confirm_broadcast"),
+                types.InlineKeyboardButton("❌ Отмена", callback_data="cancel_broadcast")
+            )
+
+            bot.send_message(
+                message.chat.id,
+                f"{preview}\n\n❓ Отправить это всем пользователям?",
+                reply_markup=markup,
+                parse_mode='HTML'
+            )
+
+            # Сохраняем данные
+            if not hasattr(bot, 'broadcast_cache'):
+                bot.broadcast_cache = {}
+            bot.broadcast_cache[message.from_user.id] = broadcast_data
+
+        except Exception as e:
+            bot.reply_to(message, f"❌ Ошибка: {str(e)}")
+
+
+    @bot.callback_query_handler(func=lambda call: call.data == "confirm_broadcast")
+    @admin_required
+    def confirm_broadcast(call):
+        """Подтверждение и отправка рассылки"""
+        try:
+            user_id = call.from_user.id
+            if not hasattr(bot, 'broadcast_cache') or user_id not in bot.broadcast_cache:
+                bot.answer_callback_query(call.id, "❌ Данные устарели. Начните рассылку заново.")
+                return
+
+            data = bot.broadcast_cache.pop(user_id)
+            success = 0
+            total = 0
+
+            with Session() as session:
+                users = session.query(User).all()
+                total = len(users)
+
+                for user in users:
+                    try:
+                        if data['text']:
+                            bot.send_message(
+                                user.telegram_id,
+                                data['text'],
+                                disable_web_page_preview=True
+                            )
+                        elif data['file_type'] == 'document':
+                            bot.send_document(
+                                user.telegram_id,
+                                data['file_id'],
+                                caption=data['caption']
+                            )
+                        elif data['file_type'] == 'photo':
+                            bot.send_photo(
+                                user.telegram_id,
+                                data['file_id'],
+                                caption=data['caption']
+                            )
+                        success += 1
+                    except Exception:
+                        # Пользователь заблокировал бота или удалил чат
+                        continue
+
+            failed = total - success
+            if failed == 0:
+                result_text = "✅ Рассылка завершена!\n" \
+                            f"Отправлено: {success}/{total} пользователей."
+            else:
+                result_text = "✅ Рассылка завершена!\n" \
+                            f"Отправлено: {success}/{total} пользователей.\n" \
+                            f"Не доставлено: {failed} — пользователи заблокировали бота."
+
+            bot.edit_message_text(
+                result_text,
+                call.message.chat.id,
+                call.message.message_id
+            )
+
+        except Exception as e:
+            bot.edit_message_text(
+                f"❌ Ошибка отправки: {str(e)}",
+                call.message.chat.id,
+                call.message.message_id
+            )
+
+
+    @bot.callback_query_handler(func=lambda call: call.data == "cancel_broadcast")
+    def cancel_broadcast(call):
+        """Отмена рассылки"""
+        if hasattr(bot, 'broadcast_cache'):
+            bot.broadcast_cache.pop(call.from_user.id, None)
+        bot.edit_message_text(
+            "❌ Рассылка отменена.",
+            call.message.chat.id,
+            call.message.message_id
+        )

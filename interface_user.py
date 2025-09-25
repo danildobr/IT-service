@@ -16,8 +16,8 @@ def register_user_handlers(bot):
         if is_admin:
             markup.add("📊 Статистика", "👥 Пользователи")
             markup.add("🛠 Управление ИТ-специалистами", )
-            markup.add("📋 Загрузить категории")
-            markup.add("Скачать файл с категориями")
+            markup.add("📋 Загрузить категории", "📢 Сделать массовую рассылку")
+            markup.add("📋 Скачать файл с категориями")
         elif is_it_specialist:
             markup.add("📋 Все заявки", "✅ Закрыть заявку")
             markup.add("Запросить дополнительную информацию")
@@ -57,7 +57,7 @@ def register_user_handlers(bot):
                 reply_markup=markup)
             
         except Exception as e:
-            print(f'ошибка в функции create_ticket: {e} ')
+            print(f'Ошибка в формирорвание категорий: {e} ')
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith('category_'))
     def handle_category_selection(call):
@@ -100,8 +100,8 @@ def register_user_handlers(bot):
             # Сохраняем subcat_id в данных пользователя
             bot.answer_callback_query(call.id)
             bot.edit_message_text(
-                f"🔧 <b>{subcat.category.name} → {subcat.name}</b>\n\n"
-                f"📝 <b>Рекомендация:</b>\n{subcat.recommendation}\n\n"
+                f"🔧 {subcat.category.name} → {subcat.name}\n\n"
+                f"📝 Рекомендация:\n{subcat.recommendation}\n\n"
                 "Помогли ли эти рекомендации?",
                 call.message.chat.id,
                 call.message.message_id,
@@ -245,9 +245,9 @@ def register_user_handlers(bot):
 
             short_desc = (ticket.description[:50] + '...') if len(ticket.description) > 50 else ticket.description
             message_text = (
-                f"🆕 <b>Новая заявка</b> #{ticket.id}\n"
+                f"🆕 Новая заявка #{ticket.id}\n"
                 f"Категория: {ticket.subcategory.category.name} → {ticket.subcategory.name}\n"
-                f"Описание: {html.escape(short_desc)}\n"
+                f"Описание: {short_desc}\n"
                 f"Время: {ticket.created_at.strftime('%d.%m %H:%M')}"
             )
 
@@ -264,7 +264,7 @@ def register_user_handlers(bot):
         with Session() as session:
             user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
             if not user:
-                bot.send_message(message.chat.id, "⚠️ Пользователь не найден")
+                bot.send_message(message.chat.id, "⚠️ Пользователь не найден, нажмите команду /start")
                 return
             
             tickets = session.query(Ticket).filter_by(user_id=user.id)\
