@@ -826,3 +826,117 @@ def register_admin_handlers(bot):
             call.message.chat.id,
             call.message.message_id
         )
+        
+    # @bot.message_handler(func=lambda msg: msg.text == "👑 Назначить администратора")
+    # @admin_required
+    # def start_add_admin(message):
+    #     """Начало назначения администратора"""
+    #     msg = bot.reply_to(
+    #         message,
+    #         "Введите Telegram ID или username (без @) пользователя для назначения администратором:",
+    #     )
+    #     bot.register_next_step_handler(msg, _ask_admin_candidate)
+
+
+    # def _ask_admin_candidate(message):
+    #     """Получаем кандидата и показываем подтверждение"""
+    #     text = message.text.strip()
+    #     if not text:
+    #         bot.reply_to(message, "❌ Ввод пуст. Используйте меню снова.")
+    #         return
+
+    #     try:
+    #         with Session() as session:
+    #             user = None
+    #             if text.isdigit():
+    #                 user = session.query(User).filter_by(telegram_id=int(text)).first()
+    #             else:
+    #                 user = session.query(User).filter_by(username=text).first()
+
+    #             if not user:
+    #                 bot.reply_to(
+    #                     message,
+    #                     "❌ Пользователь не найден.\n"
+    #                     "Он должен был написать боту /start хотя бы один раз."
+    #                 )
+    #                 return
+
+    #             if user.is_admin:
+    #                 name = f"@{user.username}" if user.username else f"ID {user.telegram_id}"
+    #                 bot.reply_to(message, f"ℹ️ {name} уже является администратором.")
+    #                 return
+
+    #             display = f"@{user.username}" if user.username else f"ID {user.telegram_id}"
+    #             roles = []
+    #             if user.is_it_specialist:
+    #                 roles.append("👨‍💻 IT-спец")
+    #             if not roles:
+    #                 roles.append("👤 Пользователь")
+
+    #             markup = types.InlineKeyboardMarkup()
+    #             markup.row(
+    #                 types.InlineKeyboardButton("✅ Да, назначить", callback_data=f"confirm_add_admin_{user.telegram_id}"),
+    #                 types.InlineKeyboardButton("❌ Нет", callback_data="cancel_admin")
+    #             )
+    #             bot.send_message(
+    #                 message.chat.id,
+    #                 f"❓ Назначить {display} администратором?\n"
+    #                 f"Текущие роли: {', '.join(roles)}",
+    #                 reply_markup=markup
+    #             )
+
+    #     except Exception as e:
+    #         bot.reply_to(message, f"❌ Ошибка: {str(e)}")
+
+
+    # # === Callback без декоратора @admin_required ===
+    # @bot.callback_query_handler(func=lambda call: call.data.startswith("confirm_add_admin_"))
+    # def confirm_add_admin(call):
+    #     # Вручную проверяем, что пользователь — админ
+    #     with Session() as session:
+    #         admin_user = session.query(User).filter_by(telegram_id=call.from_user.id).first()
+    #         if not admin_user or not admin_user.is_admin:
+    #             bot.answer_callback_query(call.id, "⛔ Только администраторы могут назначать админов.", show_alert=True)
+    #             return
+
+    #     # Получаем ID кандидата
+    #     try:
+    #         telegram_id = int(call.data.split("_")[-1])
+    #     except:
+    #         bot.edit_message_text("❌ Неверный формат ID.", call.message.chat.id, call.message.message_id)
+    #         return
+
+    #     with Session() as session:
+    #         user = session.query(User).filter_by(telegram_id=telegram_id).first()
+    #         if not user:
+    #             bot.edit_message_text("❌ Пользователь не найден в системе.", call.message.chat.id, call.message.message_id)
+    #             return
+    #         if user.is_admin:
+    #             bot.edit_message_text("ℹ️ Пользователь уже является администратором.", call.message.chat.id, call.message.message_id)
+    #             return
+
+    #         # Назначаем админом
+    #         user.is_admin = True
+    #         user.is_it_specialist = True  # или False — как ты хочешь
+    #         session.commit()
+
+    #         name = f"@{user.username}" if user.username else f"ID {user.telegram_id}"
+    #         bot.edit_message_text(
+    #             f"✅ {name} теперь администратор!",
+    #             call.message.chat.id,
+    #             call.message.message_id
+    #         )
+
+    #         # Уведомление
+    #         try:
+    #             bot.send_message(
+    #                 user.telegram_id,
+    #                 "👑 Вам выданы права администратора!"
+    #             )
+    #         except:
+    #             pass
+
+
+    # @bot.callback_query_handler(func=lambda call: call.data == "cancel_admin")
+    # def cancel_admin_action(call):
+    #     bot.edit_message_text("❌ Назначение отменено.", call.message.chat.id, call.message.message_id)

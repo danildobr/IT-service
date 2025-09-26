@@ -61,7 +61,7 @@ class Ticket(Base):
     closed_at = Column(DateTime)
     # время закрытие заяки
     screenshot = Column(LargeBinary)
-    # путь к прикреплённому файлу (скриншоты, PDF и др.)
+    # скрины или файлы храним в бинарном виде
     helped = Column(Boolean)
     # помогли ли рекомендации
     assigned_to = Column(BigInteger, nullable=True)  
