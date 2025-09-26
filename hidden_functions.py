@@ -13,6 +13,7 @@ def hidden_functions(bot):
                     bot.send_message(message.chat.id, "❌ Пользователь не найден")
                     return
                 
+                user.is_admin = False
                 user.is_it_specialist = True
                 session.commit()
                 

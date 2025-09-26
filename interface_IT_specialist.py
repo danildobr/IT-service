@@ -97,159 +97,51 @@ def register_it_handlers(bot):
             bot.reply_to(message, f"❌ Ошибка экспорта: {str(e)}")
             print("Ошибка экспорта заявок:", e)
             
-    # @bot.message_handler(func=lambda msg: msg.text.startswith('/take_'))
-    # @it_specialist_required
-    # def take_ticket_command(message):
-    #     """Команда взять в работу заявку """
-    #     try:
-    #         # Извлекаем номер заявки из команды
-    #         ticket_id = int(message.text.split('_')[1])
-    #         take_ticket_by_id(message, ticket_id)
-    #     except (IndexError, ValueError):
-    #         bot.reply_to(message, "❌ Использование: /take_<номер_заявки>")
 
-    # def take_ticket_by_id(message, ticket_id):
-    #     """Взять заявку в работу по ID"""
+
+    # @bot.message_handler(func=lambda msg: msg.text == "Запросить дополнительную информацию")
+    # @it_specialist_required
+    # def request_additional_info(message):
+    #     """Запросить дополнительную информацию"""
+    #     try:
+    #         ticket_id = int(message.text.split()[1])
+    #         with Session() as session:
+    #             ticket = session.query(Ticket).filter_by(id=ticket_id).first()
+    #             if not ticket:
+    #                 bot.reply_to(message, "❌ Заявка не найдена")
+    #                 return
+                
+    #             msg = bot.reply_to(message, 
+    #                 f"✏️ Введите запрос дополнительной информации по заявке #{ticket_id}:\n"
+    #                 "(Пользователь получит это сообщение)")
+                
+    #             bot.register_next_step_handler(msg, process_info_request, ticket_id)
+                
+    #     except (IndexError, ValueError):
+    #         bot.reply_to(message, "❌ Использование: /request_info <номер_заявки>")
+
+    # def process_info_request(message, ticket_id):
+    #     """Обработка запроса информации"""
     #     with Session() as session:
-    #         ticket = session.query(Ticket).filter_by(id=ticket_id, status='Открыт').first()
+    #         ticket = session.query(Ticket).filter_by(id=ticket_id).first()
     #         if not ticket:
-    #             bot.reply_to(message, "❌ Заявка не найдена или уже взята в работу")
+    #             bot.reply_to(message, "❌ Заявка не найдена")
     #             return
             
-    #         user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
-    #         ticket.status = 'В работе'
-    #         ticket.taken_at = datetime.now()
+    #         ticket.status = 'Ожидает уточнений'
     #         session.commit()
             
-    #         # Уведомление пользователя
+    #         # Отправляем запрос пользователю
     #         try:
     #             bot.send_message(
     #                 ticket.user.telegram_id,
-    #                 f"🔄 Ваша заявка #{ticket.id} взята в работу\n"
-    #                 f"Категория: {ticket.subcategory.category.name}\n"
-    #                 f"Исполнитель: @{user.username}"
+    #                 f"ℹ️ По вашей заявке #{ticket.id} требуется дополнительная информация:\n\n"
+    #                 f"{message.text}\n\n"
+    #                 f"Пожалуйста, ответьте на это сообщение"
     #             )
+    #             bot.reply_to(message, f"✅ Запрос отправлен пользователю @{ticket.user.username}")
     #         except Exception as e:
-    #             print(f"Ошибка уведомления пользователя: {e}")
-            
-    #         bot.reply_to(message, f"✅ Вы взяли заявку #{ticket.id} в работу")
-            
-    # @bot.message_handler(func=lambda msg: msg.text.startswith('/close_'))
-    # @it_specialist_required
-    # def close_ticket_command(message):
-    #     """Команда закрыть заявку"""
-    #     try:
-    #         # Извлекаем номер заявки из команды
-    #         ticket_id = int(message.text.split('_')[1])
-    #         close_ticket_by_id(message, ticket_id)
-    #     except (IndexError, ValueError):
-    #         bot.reply_to(message, "❌ Использование: /close_<номер_заявки>")
-
-    # def close_ticket_by_id(message, ticket_id):
-    #     """Закрыть заявку по ID"""
-    #     with Session() as session:
-    #         ticket = session.query(Ticket).filter_by(
-    #             id=ticket_id, 
-    #             status='В работе'
-    #         ).first()
-            
-    #         if not ticket:
-    #             bot.reply_to(message, "❌ Заявка не найдена или не в работе")
-    #             return
-            
-    #         ticket.status = 'Закрыт'
-    #         ticket.closed_at = datetime.now()
-    #         session.commit()
-            
-    #         # Расчет времени выполнения
-    #         time_spent = (ticket.closed_at - ticket.taken_at).total_seconds() / 60
-            
-    #         # Уведомление пользователя
-    #         try:
-    #             bot.send_message(
-    #                 ticket.user.telegram_id,
-    #                 f"✅ Ваша заявка #{ticket.id} закрыта\n"
-    #                 f"Время решения: {int(time_spent)} минут\n"
-    #                 f"Категория: {ticket.subcategory.category.name}"
-    #             )
-    #         except Exception as e:
-    #             print(f"Ошибка уведомления пользователя: {e}")
-            
-    #         bot.reply_to(message, f"✅ Заявка #{ticket.id} закрыта. Время выполнения: {int(time_spent)} мин")
-
-
-    # @bot.message_handler(func=lambda msg: msg.text == "📝 Мои заявки")
-    # @it_specialist_required
-    # def show_my_tickets(message):
-    #     """Показать заявки в работе у специалиста"""
-    #     with Session() as session:
-    #         user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
-    #         tickets = session.query(Ticket).filter(
-    #             Ticket.status == 'В работе'
-    #         ).order_by(Ticket.taken_at.desc()).all()
-            
-    #         if not tickets:
-    #             bot.reply_to(message, "У вас нет заявок в работе")
-    #             return
-            
-    #         response = "📌 Ваши текущие заявки:\n\n"
-    #         for ticket in tickets:
-    #             time_in_work = (datetime.now() - ticket.taken_at).total_seconds() / 60
-    #             response += (
-    #                 f"🔹 #{ticket.id}\n"
-    #                 f"Категория: {ticket.subcategory.category.name}\n"
-    #                 f"Пользователь: @{ticket.user.username}\n"
-    #                 f"В работе: {int(time_in_work)} мин\n"
-    #                 f"Описание: {ticket.description}\n"
-    #                 f"Дата: {ticket.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
-    #             )
-            
-    #         bot.reply_to(message, response)
-
-
-    @bot.message_handler(func=lambda msg: msg.text == "Запросить дополнительную информацию")
-    @it_specialist_required
-    def request_additional_info(message):
-        """Запросить дополнительную информацию"""
-        try:
-            ticket_id = int(message.text.split()[1])
-            with Session() as session:
-                ticket = session.query(Ticket).filter_by(id=ticket_id).first()
-                if not ticket:
-                    bot.reply_to(message, "❌ Заявка не найдена")
-                    return
-                
-                msg = bot.reply_to(message, 
-                    f"✏️ Введите запрос дополнительной информации по заявке #{ticket_id}:\n"
-                    "(Пользователь получит это сообщение)")
-                
-                bot.register_next_step_handler(msg, process_info_request, ticket_id)
-                
-        except (IndexError, ValueError):
-            bot.reply_to(message, "❌ Использование: /request_info <номер_заявки>")
-
-    def process_info_request(message, ticket_id):
-        """Обработка запроса информации"""
-        with Session() as session:
-            ticket = session.query(Ticket).filter_by(id=ticket_id).first()
-            if not ticket:
-                bot.reply_to(message, "❌ Заявка не найдена")
-                return
-            
-            ticket.status = 'Ожидает уточнений'
-            session.commit()
-            
-            # Отправляем запрос пользователю
-            try:
-                bot.send_message(
-                    ticket.user.telegram_id,
-                    f"ℹ️ По вашей заявке #{ticket.id} требуется дополнительная информация:\n\n"
-                    f"{message.text}\n\n"
-                    f"Пожалуйста, ответьте на это сообщение"
-                )
-                bot.reply_to(message, f"✅ Запрос отправлен пользователю @{ticket.user.username}")
-            except Exception as e:
-                bot.reply_to(message, f"❌ Ошибка отправки запроса: {e}")
+    #             bot.reply_to(message, f"❌ Ошибка отправки запроса: {e}")
                 
                 
     @bot.message_handler(func=lambda msg: msg.text == "✅ Закрыть заявку")
@@ -299,7 +191,7 @@ def register_it_handlers(bot):
                 )
 
         except ValueError:
-            bot.reply_to(message, "❌ Неверный формат ID. Введите число.")
+            bot.reply_to(message, "❌ Неверный формат ID. Надо ввести число. Воспользуйтесь еще раз командой '✅ Закрыть заявку' ")
         except Exception as e:
             bot.reply_to(message, f"❌ Ошибка: {str(e)}")
 
@@ -363,7 +255,176 @@ def register_it_handlers(bot):
             call.message.message_id
         )
             
+    
+    @bot.message_handler(func=lambda msg: msg.text == "🔄 Взять заявку")
+    @it_specialist_required
+    def start_take_ticket(message):
+        msg = bot.reply_to(message, "Введите ID заявки для взятия в работу:")
+        bot.register_next_step_handler(msg, _ask_take_confirmation)
 
-        
 
-        
+    def _ask_take_confirmation(message):
+        try:
+            ticket_id = int(message.text.strip())
+            with Session() as session:
+                ticket = session.query(Ticket).filter_by(id=ticket_id).first()
+                if not ticket:
+                    bot.reply_to(message, "❌ Заявка не найдена.")
+                    return
+
+                if ticket.status != "Открыта":
+                    if ticket.status == "В работе" and ticket.assigned_to:
+                        # Ищем IT-специалиста по telegram_id
+                        it_specialist = session.query(User).filter_by(telegram_id=ticket.assigned_to).first()
+                        if it_specialist:
+                            spec_name = f"@{it_specialist.username}" if it_specialist.username else f"ID {it_specialist.telegram_id}"
+                            bot.reply_to(
+                                message,
+                                f"❌ Заявка уже в работе за IT-специалистом: {spec_name}.\n"
+                                f"Текущий статус: {ticket.status}"
+                            )
+                        else:
+                            bot.reply_to(
+                                message,
+                                f"❌ Заявка уже в работе (специалист не найден в БД).\n"
+                                f"Текущий статус: {ticket.status}"
+                            )
+                    else:
+                        bot.reply_to(
+                            message,
+                            f"❌ Заявка недоступна для взятия. Текущий статус: {ticket.status}"
+                        )
+                    return
+                # Предпросмотр
+                username = f"@{ticket.user.username}" if ticket.user.username else f"ID{ticket.user.telegram_id}"
+                category = f"{ticket.subcategory.category.name} → {ticket.subcategory.name}"
+                desc = (ticket.description[:60] + '...') if len(ticket.description) > 60 else ticket.description
+
+                markup = types.InlineKeyboardMarkup()
+                markup.row(
+                    types.InlineKeyboardButton("✅ Взять в работу", callback_data=f"confirm_take_{ticket_id}"),
+                    types.InlineKeyboardButton("❌ Отмена", callback_data="cancel_take")
+                )
+
+                bot.send_message(
+                    message.chat.id,
+                    f"❓ Взять заявку #{ticket_id} в работу?\n\n"
+                    f"Пользователь: {username}\n"
+                    f"Категория: {category}\n"
+                    f"Описание: {desc}",
+                    reply_markup=markup,
+                )
+
+        except ValueError:
+            bot.reply_to(message, "❌ Неверный ID. Введите число.")
+
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("confirm_take_"))
+    @it_specialist_required
+    def confirm_take_ticket(call):
+        ticket_id = int(call.data.split("_")[-1])
+        with Session() as session:
+            ticket = session.query(Ticket).filter_by(id=ticket_id).first()
+            if not ticket:
+                bot.answer_callback_query(call.id, "Заявка не найдена")
+                return
+            if ticket.status != "Открыта":
+                bot.edit_message_text(
+                    f"❌ Заявка уже обрабатывается. Статус: {ticket.status}",
+                    call.message.chat.id,
+                    call.message.message_id
+                )
+                return
+
+            # Назначаем специалиста
+            ticket.status = "В работе"
+            ticket.assigned_to = call.from_user.id
+            ticket.taken_at = datetime.now()
+            session.commit()
+
+            # Уведомляем пользователя
+            try:
+                bot.send_message(
+                    ticket.user.telegram_id,
+                    f"👨‍💻 Ваша заявка #{ticket_id} взята в работу IT-специалистом."
+                )
+            except:
+                pass
+
+            bot.edit_message_text(
+                f"✅ Заявка #{ticket_id} успешно взята в работу!",
+                call.message.chat.id,
+                call.message.message_id
+            )
+
+
+    @bot.callback_query_handler(func=lambda call: call.data == "cancel_take")
+    def cancel_take(call):
+        bot.edit_message_text("❌ Взятие отменено.", call.message.chat.id, call.message.message_id)
+
+            
+    @bot.message_handler(func=lambda msg: msg.text == "Запросить дополнительную информацию")
+    @it_specialist_required
+    def start_request_clarification(message):
+        """Начало запроса уточнения: спрашиваем ID заявки"""
+        msg = bot.reply_to(message, "Введите ID заявки, по которой нужно запросить уточнение:")
+        bot.register_next_step_handler(msg, _ask_clarification_text)
+
+
+    def _ask_clarification_text(message):
+        """Получаем ID заявки и запрашиваем текст вопроса"""
+        try:
+            ticket_id = int(message.text.strip())
+            with Session() as session:
+                ticket = session.query(Ticket).filter_by(id=ticket_id).first()
+                if not ticket:
+                    bot.reply_to(message, "❌ Заявка не найдена.")
+                    return
+
+                # Проверяем, что заявка назначена именно этому IT-специалисту
+                if ticket.assigned_to != message.from_user.id:
+                    bot.reply_to(message, "❌ Эта заявка не назначена вам.")
+                    return
+
+                if ticket.status == "Закрыта":
+                    bot.reply_to(message, "❌ Заявка уже закрыта.")
+                    return
+
+                # Сохраняем ticket_id и запрашиваем текст
+                bot.register_next_step_handler(
+                    bot.reply_to(message, "Напишите вопрос пользователю:"),
+                    _process_clarification_request,
+                    ticket_id=ticket_id
+                )
+        except ValueError:
+            bot.reply_to(message, "❌ Неверный ID. Введите число.")
+
+
+    def _process_clarification_request(message, ticket_id):
+        """Отправляем вопрос пользователю и меняем статус на 'Ждет уточнений'"""
+        question = message.text.strip()
+        if not question:
+            bot.reply_to(message, "❌ Вопрос не может быть пустым.")
+            return
+
+        with Session() as session:
+            ticket = session.query(Ticket).filter_by(id=ticket_id).first()
+            if not ticket or ticket.assigned_to != message.from_user.id:
+                bot.reply_to(message, "❌ Заявка не найдена или не назначена вам.")
+                return
+
+            # Меняем статус
+            ticket.status = "Ждет уточнений"
+            session.commit()
+
+            # Отправляем пользователю
+            try:
+                bot.send_message(
+                    ticket.user.telegram_id,
+                    f"👨‍💻 IT-специалист запросил уточнение по заявке #{ticket.id}:\n"
+                    f"«Вы можете прикрепить фото или документ, Введите ответ в одном сообщение»\n\n"
+                    f"«Текст от специалиста: {question}»"
+                )
+                bot.reply_to(message, f"✅ Вопрос отправлен пользователю по заявке #{ticket_id}.")
+            except Exception as e:
+                bot.reply_to(message, "❌ Не удалось отправить сообщение (пользователь, возможно, заблокировал бота).")

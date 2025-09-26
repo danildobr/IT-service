@@ -5,6 +5,21 @@ from config import *
 from working_db import * 
 from interface_IT_specialist import *
 
+MENU_BUTTONS = {
+    "🆕 Новая заявка",
+    "📋 Мои заявки",
+    "📝 Мои заявки",
+    "📋 Все заявки",
+    "🔄 Взять заявку",
+    "✅ Закрыть заявку",
+    "Запросить дополнительную информацию",
+    "📊 Статистика",
+    "👥 Пользователи",
+    "🛠 Управление ИТ-специалистами",
+    "📋 Загрузить категории",
+    "Скачать файл с категориями",
+    "📢 Сделать массовую рассылку",
+}
 
 
 def register_user_handlers(bot):
@@ -21,6 +36,7 @@ def register_user_handlers(bot):
         elif is_it_specialist:
             markup.add("📋 Все заявки", "✅ Закрыть заявку")
             markup.add("Запросить дополнительную информацию")
+            markup.add("🔄 Взять заявку")
         else:
             markup.add("🆕 Новая заявка", "📋 Мои заявки")
         return markup
@@ -199,8 +215,7 @@ def register_user_handlers(bot):
                     user_id=user.id,
                     subcategory_id=subcat.id,
                     description=description,
-                    status='В работе',          # ← сразу "В работе"
-                    taken_at=datetime.now(),    # ← фиксируем время взятия
+                    status='Открыта',          
                     screenshot=screenshot_data, # ← бинарные данные
                     helped=False
                 )
@@ -277,13 +292,17 @@ def register_user_handlers(bot):
             response = "📋 Ваши последние 10 заявок:\n\n"
             for ticket in tickets:
                 # Цветовые индикаторы для актуальных статусов
-                if ticket.status == "Закрыта":
+                status = ticket.status
+                if status == "Закрыта":
                     status_color = "🟢"
-                elif ticket.status == "В работе":
+                elif status == "В работе":
                     status_color = "🟠"
-                elif ticket.status == "Ожидает уточнений":
+                elif status == "Ждет уточнений":  
                     status_color = "🔵"
-                
+                elif status == "Открыта":
+                    status_color = "🟡"
+                else:
+                    status_color = "⚪"  # на случай будущих статусов
 
                 response += (
                     f"🔹 #{ticket.id}\n"
@@ -296,3 +315,62 @@ def register_user_handlers(bot):
                 response += "\n"
             
             bot.send_message(message.chat.id, response)
+            
+            
+    @bot.message_handler(func=lambda msg: (msg.text and not msg.text.startswith('/')
+        and msg.text not in MENU_BUTTONS), content_types=['text', 'photo', 'document'])
+    def handle_user_clarification_response(message):
+        """Перехватывает ЛЮБОЕ сообщение от обычного пользователя"""
+        with Session() as session:
+            user = session.query(User).filter_by(telegram_id=message.from_user.id).first()
+            # Игнорируем админов и IT-спецов — они не отправляют уточнения
+            if not user or user.is_admin or user.is_it_specialist:
+                return
+
+            # Ищем активную заявку в статусе "Ждет уточнений"
+            ticket = session.query(Ticket)\
+                .filter(
+                    Ticket.user_id == user.id,
+                    Ticket.status == "Ждет уточнений",
+                    Ticket.assigned_to.isnot(None)
+                )\
+                .order_by(Ticket.created_at.desc())\
+                .first()
+
+            if not ticket:
+                text = ('У вас нет заявок или нет заявок со статусом "Ждет уточнений"\n'
+                        'Выберите предложенные варианты на клавиатуре')
+                bot.send_message(message.chat.id, text)
+                return  # Нет активного запроса — игнорируем
+
+            # Пересылаем ТОЛЬКО назначенному IT-специалисту
+            try:
+                if message.content_type == 'text':
+                    text = f"👤 Пользователь ответил по заявке #{ticket.id}:\n\n«{message.text}»"
+                    bot.send_message(ticket.assigned_to, text)
+                elif message.content_type == 'photo':
+                    bot.send_photo(
+                        ticket.assigned_to,
+                        message.photo[-1].file_id,
+                        caption=f"👤 Ответ по заявке #{ticket.id}"
+                    )
+                elif message.content_type == 'document':
+                    bot.send_document(
+                        ticket.assigned_to,
+                        message.document.file_id,
+                        caption=f"👤 Ответ по заявке #{ticket.id}"
+                    )
+
+                # ✅ Уведомляем пользователя, что его сообщение отправлено
+                bot.send_message(
+                    message.chat.id,
+                    "✅ Ваше сообщение отправлено IT-специалисту.\n"
+                    "Пожалуйста, ожидайте ответа."
+                )
+
+            except Exception as e:
+                print(f"Ошибка пересылки ответа IT-специалисту {ticket.assigned_to}: {e}")
+                bot.send_message(
+                    message.chat.id,
+                    "❌ Не удалось отправить сообщение. Попробуйте позже."
+                )

@@ -52,7 +52,7 @@ class Ticket(Base):
     # свзяь с подкатегориями 
     description = Column(Text)
     # текстовое описание проблемы
-    status = Column(String(20), default='В работе', nullable=False)
+    status = Column(String(20), default='Открыта', nullable=False)
     # статус заявки
     created_at = Column(DateTime, default=datetime.now, nullable=False)
     # время создание заявки 
@@ -64,6 +64,8 @@ class Ticket(Base):
     # путь к прикреплённому файлу (скриншоты, PDF и др.)
     helped = Column(Boolean)
     # помогли ли рекомендации
+    assigned_to = Column(BigInteger, nullable=True)  
+    # telegram_id IT-специалиста
     
     user = relationship("User", back_populates="tickets")
     subcategory = relationship("Subcategory", back_populates="tickets")
